@@ -1,0 +1,21 @@
+{
+  "name": "trustvault",
+  "version": "1.0.0",
+  "description": "TrustVault - Zero-Trust Document Security Platform with Cryptographic Auditability",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/security.test.js",
+    "seed": "node -e \"import('./src/db/database.js').then(m => m.initializeDatabase(true))\""
+  },
+  "keywords": [
+    "zero-trust",
+    "security",
+    "audit-trail",
+    "tamper-evident",
+    "access-control"
+  ],
+  "author": "TrustVault Engineering Team",
+  "license": "Apache-2.0"
+}

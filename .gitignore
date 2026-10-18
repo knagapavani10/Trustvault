@@ -1,0 +1,6 @@
+node_modules/
+*.sqlite*
+storage/trustvault.sqlite*
+storage/vault_files/vault_*
+.DS_Store
+Thumbs.db
