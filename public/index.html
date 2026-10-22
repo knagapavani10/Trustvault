@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrustVault | Zero-Trust Confidential Document Platform</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
+
+  <!-- TOP NAV BAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight text-white">Trust<span class="text-indigo-400">Vault</span></span>
+            <span class="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Zero-Trust</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Cryptographically Verifiable Document Security</p>
+        </div>
+      </div>
+
+      <!-- Ledger Integrity Badge & Fast Role Switcher -->
+      <div class="flex items-center space-x-4">
+        <!-- Integrity Pill -->
+        <button id="verifyLedgerBtn" onclick="verifyLedger()" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition text-xs font-mono font-medium">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span id="ledgerBadgeText">Ledger: Verified</span>
+          <i class="fa-solid fa-rotate text-[10px] ml-1"></i>
+        </button>
+
+        <!-- Current User Pill & Switcher -->
+        <div class="relative group">
+          <div class="flex items-center space-x-3 bg-slate-800/80 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700/80 cursor-pointer transition">
+            <div id="userAvatar" class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">U</div>
+            <div class="text-left text-xs leading-tight">
+              <div id="navUserName" class="font-semibold text-slate-200">Not Logged In</div>
+              <div id="navUserRole" class="text-slate-400 text-[10px] uppercase font-mono">Role: -</div>
+            </div>
+            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+          </div>
+
+          <!-- Quick Switcher Dropdown -->
+          <div class="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 hidden group-hover:block z-50">
+            <div class="text-[11px] font-semibold text-slate-400 px-3 py-1 uppercase tracking-wider">Fast Role Switcher</div>
+            <button onclick="quickLogin('alice.owner@trustvault.local', 'AlicePass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between transition">
+              <div>
+                <span class="font-medium text-slate-200">Alice Harrison</span>
+                <div class="text-[11px] text-slate-400">Document Owner (HR)</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Owner</span>
+            </button>
+            <button onclick="quickLogin('bob.owner@trustvault.local', 'BobPass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between transition">
+              <div>
+                <span class="font-medium text-slate-200">Bob Vance</span>
+                <div class="text-[11px] text-slate-400">Document Owner (Engineering IP)</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Owner</span>
+            </button>
+            <button onclick="quickLogin('charlie.viewer@trustvault.local', 'CharliePass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between transition">
+              <div>
+                <span class="font-medium text-slate-200">Charlie Kelly</span>
+                <div class="text-[11px] text-slate-400">Auditor (Granted Q3 Audit)</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Viewer</span>
+            </button>
+            <button onclick="quickLogin('dave.viewer@trustvault.local', 'DavePass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between transition">
+              <div>
+                <span class="font-medium text-slate-200">Dave Miller</span>
+                <div class="text-[11px] text-slate-400">Contractor (No Grants Default)</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Viewer</span>
+            </button>
+            <button onclick="quickLogin('admin@trustvault.local', 'AdminPass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between transition">
+              <div>
+                <span class="font-medium text-slate-200">Security Admin</span>
+                <div class="text-[11px] text-slate-400">Full Audit & User Oversight</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">Admin</span>
+            </button>
+            <div class="my-1 border-t border-slate-800"></div>
+            <button onclick="quickLogin('eve.revoked@trustvault.local', 'EvePass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-500/10 text-xs flex items-center justify-between text-red-400 transition">
+              <div>
+                <span class="font-medium">Eve Adams (Suspended)</span>
+                <div class="text-[11px] text-red-400/80">Attempts will be rejected</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-300">Suspended</span>
+            </button>
+          </div>
+        </div>
+
+        <button onclick="logout()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs" title="Logout">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="border-b border-slate-800 bg-slate-900/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6">
+      <button onclick="switchTab('vault')" id="tabBtn-vault" class="py-3 px-2 border-b-2 border-indigo-500 text-indigo-400 font-medium text-sm flex items-center space-x-2 transition">
+        <i class="fa-solid fa-folder-closed"></i>
+        <span>Document Vault</span>
+      </button>
+      <button onclick="switchTab('audit')" id="tabBtn-audit" class="py-3 px-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-sm flex items-center space-x-2 transition">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Cryptographic Audit Trail</span>
+      </button>
+      <button onclick="switchTab('admin')" id="tabBtn-admin" class="py-3 px-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-sm flex items-center space-x-2 transition">
+        <i class="fa-solid fa-user-shield"></i>
+        <span>Security & Administration</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: DOCUMENT VAULT -->
+    <!-- ========================================== -->
+    <section id="tab-vault" class="space-y-6">
+      
+      <!-- Top Actions Bar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+        
+        <!-- Search and Filters -->
+        <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+            <input type="text" id="searchInput" oninput="loadDocuments()" placeholder="Search title, filename, notes..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          
+          <div>
+            <select id="categorySelect" onchange="loadDocuments()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+              <option value="">All Categories</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Intellectual Property">Intellectual Property</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Financial">Financial</option>
+              <option value="Legal">Legal</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2 text-xs text-slate-400">
+            <span class="text-[11px] uppercase tracking-wider font-mono">Scoped Search:</span>
+            <span class="text-indigo-400 font-medium">Server Evaluated</span>
+          </div>
+        </div>
+
+        <!-- Upload Button (Owners/Admins) -->
+        <button id="uploadDocBtn" onclick="openUploadModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition shrink-0">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Upload Confidential Document</span>
+        </button>
+      </div>
+
+      <!-- Document Table -->
+      <div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-mono">
+              <tr>
+                <th class="py-3 px-4">Document Title & Filename</th>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Owner</th>
+                <th class="py-3 px-4">Integrity Checksum</th>
+                <th class="py-3 px-4">Your Access Level</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="documentTableBody" class="divide-y divide-slate-800/60 font-medium">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500">Loading vault documents...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: CRYPTOGRAPHIC AUDIT TRAIL -->
+    <!-- ========================================== -->
+    <section id="tab-audit" class="space-y-6 hidden">
+      
+      <!-- Ledger Status Header -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/20 to-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-3">
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-link text-indigo-400"></i>
+              <span>Immutable Cryptographic Audit Ledger</span>
+            </h2>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">SHA-256 Chained</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+            Every file read, download, upload, permission grant, revocation, and refused unauthorized probe is cryptographically hashed with its preceding block. Modifying any past record breaks the chain.
+          </p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <button onclick="verifyLedger(true)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-emerald-600/30 transition">
+            <i class="fa-solid fa-shield-virus"></i>
+            <span>Mathematically Verify Ledger</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Logs -->
+      <div class="flex items-center space-x-3 text-xs">
+        <span class="text-slate-400">Filter Events:</span>
+        <button onclick="filterAuditLogs('')" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">All</button>
+        <button onclick="filterAuditLogs('ACCESS_DENIED')" class="px-3 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20">Refused Attempts (403)</button>
+        <button onclick="filterAuditLogs('DOCUMENT_DOWNLOAD')" class="px-3 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20">Downloads</button>
+        <button onclick="filterAuditLogs('PERMISSION_REVOKED')" class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20">Revocations</button>
+      </div>
+
+      <!-- Audit Ledger Stream -->
+      <div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Block #</th>
+                <th class="py-3 px-4">Timestamp (UTC)</th>
+                <th class="py-3 px-4">Actor</th>
+                <th class="py-3 px-4">Action</th>
+                <th class="py-3 px-4">Resource</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">IP Address</th>
+                <th class="py-3 px-4">Block SHA-256 Hash</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody" class="divide-y divide-slate-800/60 text-[11px]">
+              <tr>
+                <td colspan="8" class="py-8 text-center text-slate-500 font-sans">Loading cryptographic ledger...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: SECURITY & ADMINISTRATION -->
+    <!-- ========================================== -->
+    <section id="tab-admin" class="space-y-6 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+            <i class="fa-solid fa-users-gear text-purple-400"></i>
+            <span>User Directory & Immediate Account Revocation</span>
+          </h2>
+          <p class="text-xs text-slate-400">
+            Administrators manage identities and enforce instant account suspensions. Suspending a user increments their token version, immediately terminating any active sessions.
+          </p>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-mono">
+            <tr>
+              <th class="py-3 px-4">Name & Email</th>
+              <th class="py-3 px-4">Role</th>
+              <th class="py-3 px-4">Account Status</th>
+              <th class="py-3 px-4">Enforcement</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTableBody" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="5" class="py-8 text-center text-slate-500">Loading user directory...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: UPLOAD DOCUMENT -->
+  <!-- ========================================== -->
+  <div id="uploadModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-file-shield text-indigo-400"></i>
+          <span>Upload Confidential Document</span>
+        </h3>
+        <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="uploadForm" onsubmit="handleUploadSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Document Title</label>
+          <input type="text" id="uploadTitle" required placeholder="e.g. Q4 Executive Compensation Strategy" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Classification Category</label>
+            <select id="uploadCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="Human Resources">Human Resources</option>
+              <option value="Intellectual Property">Intellectual Property</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Financial">Financial</option>
+              <option value="Legal">Legal</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Confidentiality Level</label>
+            <div class="py-2 text-xs font-medium text-amber-400 flex items-center space-x-1.5">
+              <i class="fa-solid fa-lock text-xs"></i>
+              <span>Restricted Confidential</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Description / Retention Notes</label>
+          <textarea id="uploadDesc" rows="2" placeholder="Brief overview of sensitivity..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Select File (Verified by Magic Bytes)</label>
+          <input type="file" id="uploadFileInput" required class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+          <p class="text-[11px] text-slate-500 mt-1">Accepted: PDF, PNG, JPG, DOCX, XLSX, TXT, CSV. Executables & polyglots rejected.</p>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeUploadModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">Cancel</button>
+          <button type="submit" id="uploadSubmitBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-2">
+            <i class="fa-solid fa-shield-check"></i>
+            <span>Validate & Deposit to Vault</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: PERMISSIONS & SHARING MANAGER -->
+  <!-- ========================================== -->
+  <div id="permsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-bold text-slate-100 flex items-center space-x-2">
+            <i class="fa-solid fa-user-lock text-indigo-400"></i>
+            <span>Manage Access Grants</span>
+          </h3>
+          <p id="permModalDocTitle" class="text-xs text-slate-400 font-medium mt-0.5">Document: -</p>
+        </div>
+        <button onclick="closePermsModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Grant New Permission Form -->
+      <form id="grantPermForm" onsubmit="handleGrantSubmit(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+        <div class="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+          <i class="fa-solid fa-user-plus text-indigo-400"></i>
+          <span>Grant Access to Named Person</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <select id="grantTargetEmail" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="">Select Named Person...</option>
+              <option value="charlie.viewer@trustvault.local">Charlie Kelly (charlie.viewer@trustvault.local)</option>
+              <option value="dave.viewer@trustvault.local">Dave Miller (dave.viewer@trustvault.local)</option>
+              <option value="bob.owner@trustvault.local">Bob Vance (bob.owner@trustvault.local)</option>
+              <option value="alice.owner@trustvault.local">Alice Harrison (alice.owner@trustvault.local)</option>
+            </select>
+          </div>
+          <div>
+            <select id="grantLevel" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="read">Read Only</option>
+              <option value="edit">Edit & Read</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>Issue Grant</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Active Grants List -->
+      <div class="space-y-2">
+        <div class="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">Current Named Grants</div>
+        <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900 text-slate-400 border-b border-slate-800 text-[10px] uppercase font-mono">
+              <tr>
+                <th class="py-2.5 px-3">Authorized Person</th>
+                <th class="py-2.5 px-3">Role</th>
+                <th class="py-2.5 px-3">Grant Level</th>
+                <th class="py-2.5 px-3">Granted At</th>
+                <th class="py-2.5 px-3 text-right">Revocation</th>
+              </tr>
+            </thead>
+            <tbody id="permListBody" class="divide-y divide-slate-800/80">
+              <tr>
+                <td colspan="5" class="py-4 text-center text-slate-500">Loading grants...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-[11px] text-amber-400/90 flex items-center space-x-1.5 pt-1">
+          <i class="fa-solid fa-bolt text-xs"></i>
+          <span>Standard 3 Enforced: Clicking "Revoke" halts all document access immediately in real-time.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script src="/app.js"></script>
+</body>
+</html>
