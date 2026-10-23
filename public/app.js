@@ -208,7 +208,10 @@ async function loadDocuments() {
           <td class="py-3 px-4 text-right">
             <div class="flex items-center justify-end space-x-2">
               ${canRead ? `
-                <button onclick="downloadDocument('${doc.id}', '${escapeHtml(doc.original_name)}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition text-[11px] font-medium" title="Authorized Download">
+                <button onclick="openViewModal('${doc.id}', '${escapeHtml(doc.title)}', '${escapeHtml(doc.original_name)}', '${doc.mime_type}')" class="px-2.5 py-1 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 transition text-[11px] font-medium" title="View Document">
+                  <i class="fa-solid fa-eye mr-1"></i> View
+                </button>
+                <button onclick="downloadDocument('${doc.id}', '${escapeHtml(doc.original_name)}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-[11px] font-medium" title="Authorized Download">
                   <i class="fa-solid fa-download mr-1"></i> Download
                 </button>
               ` : `
@@ -673,4 +676,147 @@ function formatBytes(bytes) {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// -------------------------------------------------------------
+// USER REGISTRATION & LOGIN MODAL
+// -------------------------------------------------------------
+function openAuthModal(mode = 'login') {
+  document.getElementById('authModal').classList.remove('hidden');
+  switchAuthMode(mode);
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').classList.add('hidden');
+}
+
+function switchAuthMode(mode) {
+  const regForm = document.getElementById('registerForm');
+  const loginForm = document.getElementById('customLoginForm');
+  const regBtn = document.getElementById('authTabRegisterBtn');
+  const loginBtn = document.getElementById('authTabLoginBtn');
+
+  if (mode === 'register') {
+    regForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+    regBtn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white';
+    loginBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white';
+  } else {
+    regForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+    loginBtn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white';
+    regBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white';
+  }
+}
+
+async function handleRegisterSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const role = document.getElementById('regRole').value;
+  const password = document.getElementById('regPassword').value;
+
+  const btn = document.getElementById('regSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Creating Account...';
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, role, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Registration failed', 'error');
+      return;
+    }
+
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('trustvault_token', data.token);
+    localStorage.setItem('trustvault_user', JSON.stringify(data.user));
+
+    updateUserNav();
+    showToast(`Welcome ${data.user.name}! Account created as ${data.user.role}.`, 'success');
+    closeAuthModal();
+    loadCurrentTab();
+    verifyLedger(false);
+  } catch (err) {
+    showToast(`Registration error: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>Create Account & Log In</span>';
+  }
+}
+
+async function handleCustomLoginSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  await quickLogin(email, password);
+  closeAuthModal();
+}
+
+// -------------------------------------------------------------
+// SECURE IN-BROWSER DOCUMENT VIEWER
+// -------------------------------------------------------------
+async function openViewModal(docId, title, originalName, mimeType) {
+  const modal = document.getElementById('viewDocModal');
+  const titleEl = document.getElementById('viewDocModalTitle');
+  const metaEl = document.getElementById('viewDocModalMeta');
+  const contentEl = document.getElementById('viewDocContent');
+  const downloadBtn = document.getElementById('viewDocDownloadBtn');
+
+  titleEl.innerHTML = `<i class="fa-solid fa-file-shield text-indigo-400"></i> <span>${escapeHtml(title)}</span>`;
+  metaEl.textContent = `${originalName} (${mimeType}) - Evaluating real-time permissions...`;
+  contentEl.innerHTML = '<div class="text-center text-slate-500"><i class="fa-solid fa-spinner animate-spin text-2xl mb-2 text-indigo-400"></i><p>Verifying server authorization...</p></div>';
+  downloadBtn.onclick = () => downloadDocument(docId, originalName);
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/documents/${docId}/view`, {
+      headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      contentEl.innerHTML = `
+        <div class="text-center text-red-400 p-8 space-y-3">
+          <i class="fa-solid fa-shield-xmark text-4xl text-red-500"></i>
+          <div class="font-bold text-sm">ACCESS DENIED (HTTP ${res.status})</div>
+          <p class="text-xs max-w-md mx-auto text-slate-400">${escapeHtml(err.error || 'You lack permission to view this document.')}</p>
+          <p class="text-[10px] font-mono text-amber-400">This unauthorized probe was recorded in the immutable audit ledger.</p>
+        </div>
+      `;
+      metaEl.textContent = 'Access Blocked by Server';
+      verifyLedger(false);
+      return;
+    }
+
+    metaEl.textContent = `${originalName} (${mimeType}) • Authenticated Stream`;
+
+    if (mimeType.includes('pdf')) {
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      contentEl.innerHTML = `<iframe src="${objectUrl}#toolbar=0" class="w-full h-full rounded-lg border-0 bg-slate-900"></iframe>`;
+    } else if (mimeType.startsWith('image/')) {
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      contentEl.innerHTML = `<img src="${objectUrl}" alt="${escapeHtml(title)}" class="max-w-full max-h-full object-contain rounded-lg">`;
+    } else {
+      // Text / CSV / JSON
+      const text = await res.text();
+      contentEl.innerHTML = `<pre class="w-full h-full text-slate-200 whitespace-pre-wrap font-mono text-xs overflow-auto select-text">${escapeHtml(text)}</pre>`;
+    }
+
+    verifyLedger(false);
+  } catch (err) {
+    contentEl.innerHTML = `<div class="text-red-400 text-center">Failed to stream document: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function closeViewModal() {
+  document.getElementById('viewDocModal').classList.add('hidden');
 }

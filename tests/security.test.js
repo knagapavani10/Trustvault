@@ -54,21 +54,24 @@ function createMockHttp(method, pathStr, { token = null, body = null, headers = 
   let responseStatus = 200;
   let responseHeaders = {};
 
-  const res = {
-    writeHead: (status, h = {}) => {
-      responseStatus = status;
-      responseHeaders = { ...responseHeaders, ...h };
-    },
-    setHeader: (k, v) => {
+  const res = new EventEmitter();
+  res.writeHead = (status, h = {}) => {
+    responseStatus = status;
+    for (const [k, v] of Object.entries(h)) {
       responseHeaders[k.toLowerCase()] = v;
-    },
-    getHeader: (k) => responseHeaders[k.toLowerCase()],
-    write: (chunk) => {
-      responseData += chunk;
-    },
-    end: (chunk) => {
-      if (chunk) responseData += chunk;
     }
+  };
+  res.setHeader = (k, v) => {
+    responseHeaders[k.toLowerCase()] = v;
+  };
+  res.getHeader = (k) => responseHeaders[k.toLowerCase()];
+  res.write = (chunk) => {
+    responseData += chunk;
+    return true;
+  };
+  res.end = (chunk) => {
+    if (chunk) responseData += chunk;
+    res.emit('finish');
   };
 
   const url = new URL(pathStr, 'http://trustvault.local');
@@ -379,4 +382,53 @@ test('API Integration: Full HTTP dispatch of authentication, IDOR blocking, and 
   const verifyRes = await verifyMock.execute();
   assert.equal(verifyRes.status, 200);
   assert.equal(verifyRes.data.verification.valid, true);
+});
+
+test('User Registration: Enforces email format, password strength, and issues valid session', async () => {
+  // Test invalid email
+  const badEmailMock = createMockHttp('POST', '/api/auth/register', {
+    body: { name: 'Test', email: 'not-an-email', password: 'ValidPassword123!', role: 'viewer' }
+  });
+  const badEmailRes = await badEmailMock.execute();
+  assert.equal(badEmailRes.status, 400);
+  assert.match(badEmailRes.data.error, /valid email/i);
+
+  // Test weak password (<8 chars)
+  const weakPassMock = createMockHttp('POST', '/api/auth/register', {
+    body: { name: 'Test', email: 'valid@test.com', password: '123', role: 'viewer' }
+  });
+  const weakPassRes = await weakPassMock.execute();
+  assert.equal(weakPassRes.status, 400);
+  assert.match(weakPassRes.data.error, /at least 8 characters/i);
+
+  // Test successful registration
+  const goodMock = createMockHttp('POST', '/api/auth/register', {
+    body: { name: 'Sarah Connor', email: 'sarah.connor@test.com', password: 'TerminatorPass123!', role: 'owner' }
+  });
+  const goodRes = await goodMock.execute();
+  assert.equal(goodRes.status, 201);
+  assert.ok(goodRes.data.token);
+  assert.equal(goodRes.data.user.email, 'sarah.connor@test.com');
+  assert.equal(goodRes.data.user.role, 'owner');
+});
+
+test('Document Viewing: GET /api/documents/:id/view enforces identical zero-trust checks', async () => {
+  const charlieToken = (await loginUser({
+    email: 'charlie.viewer@trustvault.local',
+    password: 'CharliePass123!',
+    ipAddress: '127.0.0.1',
+    userAgent: 'Test'
+  })).token;
+
+  // View Bob's unauthorized doc -> 403 Forbidden
+  const viewDeniedMock = createMockHttp('GET', '/api/documents/doc-arch-nextgen/view', { token: charlieToken });
+  const viewDeniedRes = await viewDeniedMock.execute();
+  assert.equal(viewDeniedRes.status, 403);
+  assert.match(viewDeniedRes.data.error, /Access Denied/i);
+
+  // View Alice's audit doc (Charlie is granted) -> 200 OK
+  const viewAllowedMock = createMockHttp('GET', '/api/documents/doc-audit-q3/view', { token: charlieToken });
+  const viewAllowedRes = await viewAllowedMock.execute();
+  assert.equal(viewAllowedRes.status, 200);
+  assert.equal(viewAllowedRes.headers['content-disposition'], 'inline; filename="Q3_External_Audit_Working_Papers.pdf"');
 });

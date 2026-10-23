@@ -87,6 +87,53 @@ export async function handleApiRequest(req, res, url) {
     // AUTHENTICATION ENDPOINTS
     // -------------------------------------------------------------
 
+    // POST /api/auth/register - Beginner-friendly self-registration
+    if (method === 'POST' && pathname === '/api/auth/register') {
+      const body = await readJsonBody();
+      const { name, email, password, role } = body;
+
+      // Input Validation
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return sendJson(400, { error: 'Full name is required.' });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email.trim())) {
+        return sendJson(400, { error: 'A valid email address is required.' });
+      }
+
+      if (!password || typeof password !== 'string' || password.length < 8) {
+        return sendJson(400, { error: 'Password must be at least 8 characters long.' });
+      }
+
+      const selectedRole = role === 'owner' ? 'owner' : 'viewer';
+
+      // Register the new user
+      const newUser = registerUser({
+        email: email.trim().toLowerCase(),
+        password,
+        name: name.trim(),
+        role: selectedRole,
+        creator: null,
+        ipAddress,
+        userAgent
+      });
+
+      // Automatically issue session token so the new user is logged in immediately
+      const loginResult = loginUser({
+        email: email.trim().toLowerCase(),
+        password,
+        ipAddress,
+        userAgent
+      });
+
+      return sendJson(201, {
+        message: 'Account registered successfully.',
+        token: loginResult.token,
+        user: loginResult.user
+      });
+    }
+
     // POST /api/auth/login
     if (method === 'POST' && pathname === '/api/auth/login') {
       const body = await readJsonBody();
@@ -94,7 +141,7 @@ export async function handleApiRequest(req, res, url) {
         return sendJson(400, { error: 'Email and password are required.' });
       }
       const result = loginUser({
-        email: body.email,
+        email: body.email.trim().toLowerCase(),
         password: body.password,
         ipAddress,
         userAgent
@@ -223,6 +270,25 @@ export async function handleApiRequest(req, res, url) {
         'Content-Type': downloadInfo.mimeType,
         'Content-Length': downloadInfo.fileSize,
         'Content-Disposition': `attachment; filename="${downloadInfo.originalName}"`,
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache'
+      });
+      stream.pipe(res);
+      return;
+    }
+
+    // GET /api/documents/:id/view - Secure Authorized In-Browser Viewing Stream
+    const viewMatch = pathname.match(/^\/api\/documents\/([^/]+)\/view$/);
+    if (method === 'GET' && viewMatch) {
+      const docId = viewMatch[1];
+      const viewInfo = prepareDocumentDownload(docId, currentUser, ipAddress, userAgent);
+
+      const stream = fs.createReadStream(viewInfo.filePath);
+      res.writeHead(200, {
+        'Content-Type': viewInfo.mimeType,
+        'Content-Length': viewInfo.fileSize,
+        'Content-Disposition': `inline; filename="${viewInfo.originalName}"`,
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'no-store, no-cache, must-revalidate, private',
         'Pragma': 'no-cache'

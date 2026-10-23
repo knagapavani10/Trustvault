@@ -95,6 +95,21 @@
               <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">Admin</span>
             </button>
             <div class="my-1 border-t border-slate-800"></div>
+            <button onclick="openAuthModal('register')" class="w-full text-left px-3 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-xs flex items-center justify-between text-indigo-300 font-semibold transition">
+              <div>
+                <i class="fa-solid fa-user-plus mr-1.5"></i>
+                <span>Register New Account</span>
+              </div>
+              <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-indigo-500/20">Sign Up</span>
+            </button>
+            <button onclick="openAuthModal('login')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-xs flex items-center justify-between text-slate-300 transition">
+              <div>
+                <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i>
+                <span>Sign In with Custom Email</span>
+              </div>
+              <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800">Login</span>
+            </button>
+            <div class="my-1 border-t border-slate-800"></div>
             <button onclick="quickLogin('eve.revoked@trustvault.local', 'EvePass123!')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-500/10 text-xs flex items-center justify-between text-red-400 transition">
               <div>
                 <span class="font-medium">Eve Adams (Suspended)</span>
@@ -440,6 +455,113 @@
           <i class="fa-solid fa-bolt text-xs"></i>
           <span>Standard 3 Enforced: Clicking "Revoke" halts all document access immediately in real-time.</span>
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: REGISTRATION & LOGIN -->
+  <!-- ========================================== -->
+  <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex space-x-3 text-xs font-bold">
+          <button id="authTabLoginBtn" onclick="switchAuthMode('login')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">Sign In</button>
+          <button id="authTabRegisterBtn" onclick="switchAuthMode('register')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">Register Account</button>
+        </div>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Registration Form -->
+      <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-3.5 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Your Full Name</label>
+          <input type="text" id="regName" required placeholder="e.g. John Doe" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="regEmail" required placeholder="john.doe@company.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Account Role</label>
+          <select id="regRole" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            <option value="viewer">Viewer (Can search & view granted confidential documents)</option>
+            <option value="owner">Document Owner (Can upload, categorize & grant access to others)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password (min 8 characters)</label>
+          <input type="password" id="regPassword" required minlength="8" placeholder="SecurePass123!" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+          <p class="text-[10px] text-slate-500 mt-1">Hashed with Scrypt + random 16-byte cryptographic salt.</p>
+        </div>
+        <div class="pt-2">
+          <button type="submit" id="regSubmitBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Create Account & Log In</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Login Form -->
+      <form id="customLoginForm" onsubmit="handleCustomLoginSubmit(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="e.g. alice.owner@trustvault.local" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="loginPassword" required placeholder="Enter password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="pt-2">
+          <button type="submit" id="loginSubmitBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>Authenticate & Access Vault</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SECURE DOCUMENT VIEWER -->
+  <!-- ========================================== -->
+  <div id="viewDocModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full h-[85vh] p-6 shadow-2xl flex flex-col space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 id="viewDocModalTitle" class="font-bold text-slate-100 flex items-center space-x-2">
+            <i class="fa-solid fa-file-shield text-indigo-400"></i>
+            <span>Document Viewer</span>
+          </h3>
+          <p id="viewDocModalMeta" class="text-xs text-slate-400 font-mono mt-0.5">Authorizing preview...</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="viewDocDownloadBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Download</span>
+          </button>
+          <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Area -->
+      <div id="viewDocContent" class="flex-1 bg-slate-950 rounded-xl border border-slate-800 p-4 overflow-auto flex items-center justify-center font-mono text-xs text-slate-300">
+        <div class="text-center text-slate-500">
+          <i class="fa-solid fa-spinner animate-spin text-2xl mb-2 text-indigo-400"></i>
+          <p>Verifying server-side permissions and loading stream...</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800 pt-3">
+        <span class="flex items-center space-x-1.5 text-emerald-400">
+          <i class="fa-solid fa-shield-check"></i>
+          <span>Authorized View: Access recorded in Cryptographic Audit Ledger</span>
+        </span>
+        <button onclick="closeViewModal()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Close</button>
       </div>
     </div>
   </div>
